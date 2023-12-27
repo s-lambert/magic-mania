@@ -4,6 +4,7 @@ use bevy::{
     prelude::*,
     window::{self, WindowResolution},
 };
+use bevy_xpbd_2d::plugins::{PhysicsDebugPlugin, PhysicsPlugins};
 use mage::MagePlugin;
 use prelude::{WINDOW_HEIGHT, WINDOW_WIDTH};
 
@@ -33,6 +34,7 @@ fn main() {
         )
         .add_systems(Update, window::close_on_esc)
         .add_systems(Startup, camera_setup)
+        .add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()))
         .add_plugins(MagePlugin)
         .run();
 }

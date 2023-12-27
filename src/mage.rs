@@ -1,7 +1,9 @@
 use std::iter::Cycle;
 use std::ops::RangeInclusive;
 
+use bevy::sprite::Anchor;
 use bevy::{prelude::*, utils::HashMap};
+use bevy_xpbd_2d::prelude::*;
 use leafwing_input_manager::plugin::InputManagerSystem;
 use leafwing_input_manager::prelude::*;
 
@@ -74,8 +76,13 @@ fn setup_mage(
     spell_slot_map.insert(MageActions::SpellPrimary, Spell::BlastLaunch);
     spell_slot_map.insert(MageActions::SpellSecondary, Spell::BlastActivate);
 
+    // Animation is already on the 0 frame, so start iterating at 1.
     let mut walk_animation_frames = (0..=1).cycle();
     walk_animation_frames.next();
+
+    // Move sprite up so the collider is at the bottom.
+    let mut sprite = TextureAtlasSprite::new(0);
+    sprite.anchor = Anchor::Custom(Vec2::new(0.0, -0.25));
 
     commands.spawn((
         MageBundle {
@@ -102,10 +109,13 @@ fn setup_mage(
             spell_slot_map,
         },
         SpriteSheetBundle {
-            sprite: TextureAtlasSprite::new(0),
+            sprite,
             texture_atlas: texture_atlases.add(mage_texture_atlas),
             ..default()
         },
+        RigidBody::Kinematic,
+        Collider::ball(8.0),
+        LinearVelocity::default(),
     ));
 }
 
@@ -143,29 +153,31 @@ fn use_spell(mut commands: Commands, mut mage_query: Query<(&ActionState<Spell>,
     }
 }
 
-fn movevement(mut mage_query: Query<(&ActionState<MageActions>, &mut Mage, &mut Transform)>) {
-    let (action_state, mut mage, mut transform) = mage_query.single_mut();
+fn movevement(mut mage_query: Query<(&ActionState<MageActions>, &mut Mage, &mut LinearVelocity)>) {
+    let (action_state, mut mage, mut velocity) = mage_query.single_mut();
+
+    velocity.x = 0.0;
+    velocity.y = 0.0;
 
     if mage.firing_spell {
         return;
     }
-
     mage.is_walking = false;
 
     if action_state.pressed(MageActions::Right) {
-        transform.translation.x += 1.0;
+        velocity.x = 10.0;
         mage.is_walking = true;
     }
     if action_state.pressed(MageActions::Left) {
-        transform.translation.x -= 1.0;
+        velocity.x = -10.0;
         mage.is_walking = true;
     }
     if action_state.pressed(MageActions::Up) {
-        transform.translation.y += 1.0;
+        velocity.y = 10.0;
         mage.is_walking = true;
     }
     if action_state.pressed(MageActions::Down) {
-        transform.translation.y -= 1.0;
+        velocity.y = -10.0;
         mage.is_walking = true;
     }
 }
